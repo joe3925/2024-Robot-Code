@@ -2,7 +2,7 @@ package frc.team1678.lib;
 
 import java.util.List;
 
-import frc.team254.lib.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 
 /**
  * Contains basic functions that are used often.
@@ -117,11 +117,5 @@ public class Util {
         if (epsilonEquals(deadbandedValue, 0.0))
             return 0.0;
         return Math.signum(deadbandedValue) * ((Math.abs(deadbandedValue) - deadband) / (maxValue - deadband));
-    }
-
-    public static boolean shouldReverse(Rotation2d goalAngle, Rotation2d currentAngle) {
-        double angleDifference = Math.abs(goalAngle.distance(currentAngle));
-        double reverseAngleDifference = Math.abs(goalAngle.distance(currentAngle.rotateBy(Rotation2d.fromDegrees(180.0))));
-        return reverseAngleDifference < angleDifference;
     }
 }

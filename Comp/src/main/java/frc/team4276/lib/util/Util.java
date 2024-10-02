@@ -1,6 +1,6 @@
 package frc.team4276.lib.util;
 
-import frc.team254.lib.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 
 public class Util {
     /**
@@ -43,7 +43,7 @@ public class Util {
         return Math.asin(Math.sin(angle1) * opposite_side / side1);
     }
 
-    public static Rotation2d Rescope360to180(Rotation2d rot){
+    public static edu.wpi.first.math.geometry.Rotation2d Rescope360to180(Rotation2d rot){
         if(rot.getRadians() > Math.PI){
             return rot.rotateBy(Rotation2d.fromRadians(-2 * Math.PI));
         }
