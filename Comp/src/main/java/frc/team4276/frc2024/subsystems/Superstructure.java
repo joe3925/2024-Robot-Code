@@ -9,7 +9,7 @@ import frc.team1678.lib.loops.Loop;
 
 
 public class Superstructure extends Subsystem {
-    private FlywheelSubsystem mFlywheelSubsystem = FlywheelSubsystem.getInstance();
+    private ArmSubsystem mFlywheelSubsystem = ArmSubsystem.getInstance();
 
     private double mRegressionTuningFlywheelSetpoint = 0.0;
     private double mPrevShotFlywheelSetpoint = 0.0;

@@ -6,7 +6,7 @@ package frc.team4276.frc2024;
 
 import edu.wpi.first.wpilibj.TimedRobot;
 import frc.team4276.frc2024.controlboard.ControlBoard;
-import frc.team4276.frc2024.subsystems.FlywheelSubsystem;
+import frc.team4276.frc2024.subsystems.ArmSubsystem;
 import frc.team4276.frc2024.subsystems.Superstructure;
 
 import frc.team1678.lib.loops.Looper;
@@ -27,10 +27,11 @@ public class Robot extends TimedRobot {
 
     private final Superstructure mSuperstructure = Superstructure.getInstance();
 
-    private FlywheelSubsystem mFlywheelSubsystem;
+    private ArmSubsystem mArmSubsystem;
 
     private final Looper mEnabledLooper = new Looper();
     private final Looper mDisabledLooper = new Looper();
+    
 
     /**
      * This function is run when the robot is first started up and should be used
@@ -41,16 +42,17 @@ public class Robot extends TimedRobot {
     public void robotInit() {
         try {
             // mVisionDeviceManager = VisionDeviceManager.getInstance();
-            mFlywheelSubsystem = FlywheelSubsystem.getInstance();
-
+            mArmSubsystem = ArmSubsystem.getInstance();
+            
             // Set subsystems
             mSubsystemManager.setSubsystems(
                     mSuperstructure,
-                    mFlywheelSubsystem
+                    mArmSubsystem
                     // mVisionDeviceManager,
             );
             mSubsystemManager.registerEnabledLoops(mEnabledLooper);
             mSubsystemManager.registerDisabledLoops(mDisabledLooper);
+            mArmSubsystem.setTargetRPM(30);
         } catch (Throwable t) {
             throw t;
         }

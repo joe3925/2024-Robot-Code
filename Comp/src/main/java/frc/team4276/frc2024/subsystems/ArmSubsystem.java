@@ -1,45 +1,45 @@
 package frc.team4276.frc2024.subsystems;
 
-import com.revrobotics.RelativeEncoder;
 
-import frc.team4276.frc2024.Ports;
-import frc.team4276.frc2024.Constants.FlywheelConstants;
+import edu.wpi.first.wpilibj.DutyCycleEncoder;
+import edu.wpi.first.wpilibj.Encoder;
+import edu.wpi.first.wpilibj.CounterBase.EncodingType;
+import edu.wpi.first.wpilibj.motorcontrol.Talon;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import frc.team4276.frc2024.Constants;
+import frc.team4276.lib.characterizations.ArmFeedForward;
 import frc.team4276.lib.drivers.Subsystem;
-import frc.team4276.lib.rev.VIKCANSparkMax;
-import frc.team4276.lib.rev.CANSparkMaxFactory;
+
 
 import frc.team1678.lib.loops.ILooper;
 import frc.team1678.lib.loops.Loop;
 import frc.team1678.lib.requests.Request;
 
-public class FlywheelSubsystem extends Subsystem {
-    private VIKCANSparkMax motor;
+public class ArmSubsystem extends Subsystem {
+    private Talon motor;
+    private PeriodicIO mPeriodicIO;
+    private double limit = 2;
+    private double deadZone = 2;
+    private Encoder quadratureEncoder;
+    private ArmFeedForward mFeedForward;
 
-    private RelativeEncoder encoder;
+    private static ArmSubsystem mInstance;
 
-
-    private static FlywheelSubsystem mInstance;
-
-    public static FlywheelSubsystem getInstance() {
+    public static ArmSubsystem getInstance() {
         if (mInstance == null) {
-            mInstance = new FlywheelSubsystem();
+            mInstance = new ArmSubsystem();
         }
 
         return mInstance;
     }
 
-    private FlywheelSubsystem() {
-        motor = CANSparkMaxFactory.createDefault(Ports.FLYWHEEL_TOP);
-        motor.setInverted(true);
-        motor.setIdleMode(FlywheelConstants.kIdleMode);
-        motor.setSmartCurrentLimit(FlywheelConstants.kSmartCurrentLimit);
+    private ArmSubsystem() {
+        mPeriodicIO = new PeriodicIO();
         
-        encoder = motor.getEncoder();
-        encoder.setAverageDepth(FlywheelConstants.kAvgSamplingDepth);
-        encoder.setMeasurementPeriod(FlywheelConstants.kMeasurementPeriod);
-        encoder.setVelocityConversionFactor(FlywheelConstants.kUnitsPerRotation);
-
-        motor.burnFlash();
+        motor = new Talon(0);
+        
+        quadratureEncoder = new Encoder(1, 2, false, EncodingType.k2X);
+        quadratureEncoder.setDistancePerPulse((2*Math.PI)/2048);
     }
 
     public Request rpmRequest(double RPM) {
@@ -56,31 +56,39 @@ public class FlywheelSubsystem extends Subsystem {
         };
 
     }
-
-    public void setOpenLoop(double voltage) {
-    }
-
-    public void setOpenLoop(double des_top_voltage, double des_bottom_voltage) {
+    public void setVoltage(double volatge){
+        motor.setVoltage(volatge);
     }
 
     public void setTargetRPM(double RPM) {
-        setTargetRPM(RPM, RPM);
+        mPeriodicIO.RPM_demand = RPM;
     }
 
-    public void setTargetRPM(double top_RPM, double bottom_RPM) {
+    public boolean isSpunUp() {
+        return !isUnderShot() && !isOverShot();
     }
+
+    private boolean isUnderShot() {
+        return (mPeriodicIO.RPM < mPeriodicIO.RPM_demand - deadZone);
+    }
+
+    private boolean isOverShot() {
+        double deadZone = 2;
+        return (mPeriodicIO.RPM > mPeriodicIO.RPM_demand + deadZone);
+    }
+
 
     @Override
     public void stop() {
-        setOpenLoop(0, 0);
     }
 
     private class PeriodicIO {
 
-    }
+        public double RPM;
+        public double RPM_demand;
 
-    @Override
-    public void readPeriodicInputs() {
+        public double demand_voltage;
+
     }
 
     @Override
@@ -88,11 +96,12 @@ public class FlywheelSubsystem extends Subsystem {
         enabledLooper.register(new Loop() {
             @Override
             public void onStart(double timestamp) {
-                setOpenLoop(0.0);
+
             }
 
             @Override
             public void onLoop(double timestamp) {
+
             }
 
             @Override
@@ -105,9 +114,36 @@ public class FlywheelSubsystem extends Subsystem {
 
     @Override
     public void writePeriodicOutputs() {
+        mPeriodicIO.RPM = (quadratureEncoder.getRate() / 8192.0) * 60.0;
+        
+        /*if(!isSpunUp()){
+            if(isUnderShot()){
+                System.out.println("under");
+                mPeriodicIO.demand_voltage += 0.06;
+            }
+            if(isOverShot()){
+                System.out.println("over");
+                mPeriodicIO.demand_voltage -= 0.012;
+             }
+        }
+        if (mPeriodicIO.demand_voltage > Constants.ArmConstants.voltageLimit){
+            mPeriodicIO.demand_voltage = Constants.ArmConstants.voltageLimit;
+        }
+        if (mPeriodicIO.demand_voltage < -Constants.ArmConstants.voltageLimit){
+            mPeriodicIO.demand_voltage = -Constants.ArmConstants.voltageLimit;
+        }
+        */
     }
 
     @Override
-    public void outputTelemetry() {        
+    public void readPeriodicInputs() {
+        setVoltage(mPeriodicIO.demand_voltage);
+    }
+
+    @Override
+    public void outputTelemetry() {
+        SmartDashboard.putNumber("RPM", mPeriodicIO.RPM);
+        SmartDashboard.putNumber("Dist", quadratureEncoder.getDistance());
+        SmartDashboard.putNumber("demand voltage", mPeriodicIO.demand_voltage);
     }
 }
