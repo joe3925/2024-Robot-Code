@@ -15,9 +15,7 @@ public class SysIdBindings {
     CommandXboxController mDrivController = new CommandXboxController(OIConstants.kDriverControllerPort);
     private final ArmSubsystem mArmSubsystem = new ArmSubsystem();
     public void bindKeys(){
-        Command command = mArmSubsystem.sysIdDynamic(SysIdRoutine.Direction.kForward);
-        command.schedule();
-        //mDrivController.a().whileTrue(mArmSubsystem.sysIdDynamic(SysIdRoutine.Direction.kForward));
-        //mDrivController.b().whileTrue(mArmSubsystem.sysIdDynamic(SysIdRoutine.Direction.kReverse));
+        mDrivController.a().whileTrue(mArmSubsystem.sysIdDynamic(SysIdRoutine.Direction.kForward));
+        mDrivController.b().whileTrue(mArmSubsystem.sysIdDynamic(SysIdRoutine.Direction.kReverse));
     }
 }

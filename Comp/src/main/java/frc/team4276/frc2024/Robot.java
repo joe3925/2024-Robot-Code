@@ -39,6 +39,7 @@ public class Robot extends TimedRobot {
     @Override
     public void robotInit() {
         try {
+            mBindings.bindKeys(); 
             // mVisionDeviceManager = VisionDeviceManager.getInstance();
         
         } catch (Throwable t) {
@@ -58,7 +59,6 @@ public class Robot extends TimedRobot {
      */
     @Override
     public void robotPeriodic() {       
-        mBindings.bindKeys(); 
         CommandScheduler.getInstance().run();
     }
 
