@@ -4,8 +4,13 @@
 
 package frc.team4276.frc2024;
 
+import java.sql.Driver;
+
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.team4276.frc2024.controlboard.ControlBoard;
+import frc.team4276.frc2024.controlboard.SysIdBindings;
 import frc.team4276.frc2024.subsystems.ArmSubsystem;
 import frc.team4276.frc2024.subsystems.Superstructure;
 
@@ -22,16 +27,9 @@ import frc.team1678.lib.loops.Looper;
  */
 public class Robot extends TimedRobot {
 
-    private final SubsystemManager mSubsystemManager = SubsystemManager.getInstance();
-    private final ControlBoard mControlBoard = ControlBoard.getInstance();
+    private final SysIdBindings mBindings = new SysIdBindings();    
 
-    private final Superstructure mSuperstructure = Superstructure.getInstance();
-
-    private ArmSubsystem mArmSubsystem;
-
-    private final Looper mEnabledLooper = new Looper();
-    private final Looper mDisabledLooper = new Looper();
-    
+  
 
     /**
      * This function is run when the robot is first started up and should be used
@@ -42,17 +40,7 @@ public class Robot extends TimedRobot {
     public void robotInit() {
         try {
             // mVisionDeviceManager = VisionDeviceManager.getInstance();
-            mArmSubsystem = ArmSubsystem.getInstance();
-            
-            // Set subsystems
-            mSubsystemManager.setSubsystems(
-                    mSuperstructure,
-                    mArmSubsystem
-                    // mVisionDeviceManager,
-            );
-            mSubsystemManager.registerEnabledLoops(mEnabledLooper);
-            mSubsystemManager.registerDisabledLoops(mDisabledLooper);
-            mArmSubsystem.setTargetRPM(30);
+        
         } catch (Throwable t) {
             throw t;
         }
@@ -69,17 +57,16 @@ public class Robot extends TimedRobot {
      * SmartDashboard integrated updating.
      */
     @Override
-    public void robotPeriodic() {
-        mEnabledLooper.outputToSmartDashboard();
+    public void robotPeriodic() {       
+        mBindings.bindKeys(); 
+        CommandScheduler.getInstance().run();
     }
 
     /** This function is called once each time the robot enters Disabled mode. */
     @Override
     public void disabledInit() {
         try {
-            mEnabledLooper.stop();
-            mDisabledLooper.start();
-            mSubsystemManager.stop();
+
 
         } catch (Throwable t) {
             throw t;
@@ -102,7 +89,6 @@ public class Robot extends TimedRobot {
      */
     @Override
     public void autonomousInit() {
-        mDisabledLooper.stop();
 
     }
 
@@ -117,8 +103,7 @@ public class Robot extends TimedRobot {
 
     @Override
     public void teleopInit() {
-        mDisabledLooper.stop();
-        mEnabledLooper.start();
+
     }
 
     /** This function is called periodically during operator control. */

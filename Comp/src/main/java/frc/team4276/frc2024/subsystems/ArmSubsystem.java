@@ -1,11 +1,29 @@
 package frc.team4276.frc2024.subsystems;
+import static edu.wpi.first.units.Units.Radians;
+import static edu.wpi.first.units.Units.RadiansPerSecond;
+import static edu.wpi.first.units.Units.Rotations;
+import static edu.wpi.first.units.Units.RotationsPerSecond;
+import static edu.wpi.first.units.Units.Volts;
+import static edu.wpi.first.units.Units.VoltsPerMeterPerSecond;
+
+import java.util.function.DoubleSupplier;
+
+import static edu.wpi.first.units.Units.Seconds;
 
 
+
+import edu.wpi.first.units.Measure;
+import edu.wpi.first.units.Voltage;
 import edu.wpi.first.wpilibj.DutyCycleEncoder;
 import edu.wpi.first.wpilibj.Encoder;
+import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.CounterBase.EncodingType;
 import edu.wpi.first.wpilibj.motorcontrol.Talon;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Config;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.team4276.frc2024.Constants;
 import frc.team4276.lib.characterizations.ArmFeedForward;
 import frc.team4276.lib.drivers.Subsystem;
@@ -15,49 +33,40 @@ import frc.team1678.lib.loops.ILooper;
 import frc.team1678.lib.loops.Loop;
 import frc.team1678.lib.requests.Request;
 
-public class ArmSubsystem extends Subsystem {
-    private Talon motor;
+public class ArmSubsystem implements edu.wpi.first.wpilibj2.command.Subsystem {
+    private final Talon motor = new Talon(0);
     private PeriodicIO mPeriodicIO;
-    private double limit = 2;
     private double deadZone = 2;
     private Encoder quadratureEncoder;
-    private ArmFeedForward mFeedForward;
+    private Config config = new SysIdRoutine.Config(null,Volts.of(3),null);
 
-    private static ArmSubsystem mInstance;
+    private final SysIdRoutine mSysIdRoutine = new SysIdRoutine(
+          config,
+          new SysIdRoutine.Mechanism(
+              // Tell SysId how to plumb the driving voltage to the motor(s).
+              Voltage -> this.setVoltage(Voltage),
+              // Tell SysId how to record a frame of data for each motor on the mechanism being
+              // characterized.
+                log -> {
+                // Record a frame for the shooter motor.
+                log.motor("shooter-wheel")
+                    .voltage(Volts.of(mPeriodicIO.demand_voltage))
+                    .angularPosition(Rotations.of(quadratureEncoder.getDistance()))
+                    .angularVelocity(RotationsPerSecond.of(quadratureEncoder.getDistance()));
+              },
+              // Tell SysId to make generated commands require this subsystem, suffix test state in
+              // WPILog with this subsystem's name ("shooter")
+              this));
 
-    public static ArmSubsystem getInstance() {
-        if (mInstance == null) {
-            mInstance = new ArmSubsystem();
-        }
-
-        return mInstance;
-    }
-
-    private ArmSubsystem() {
+    public ArmSubsystem() {
         mPeriodicIO = new PeriodicIO();
-        
-        motor = new Talon(0);
-        
+            
         quadratureEncoder = new Encoder(1, 2, false, EncodingType.k2X);
         quadratureEncoder.setDistancePerPulse((2*Math.PI)/2048);
+        
     }
-
-    public Request rpmRequest(double RPM) {
-        return new Request() {
-            @Override
-            public void act() {
-                setTargetRPM(RPM);
-            }
-
-            @Override
-            public boolean isFinished() {
-                return true;
-            }
-        };
-
-    }
-    public void setVoltage(double volatge){
-        motor.setVoltage(volatge);
+    public void setVoltage(Measure<Voltage> volatge){
+        motor.setVoltage(volatge.magnitude());
     }
 
     public void setTargetRPM(double RPM) {
@@ -77,11 +86,6 @@ public class ArmSubsystem extends Subsystem {
         return (mPeriodicIO.RPM > mPeriodicIO.RPM_demand + deadZone);
     }
 
-
-    @Override
-    public void stop() {
-    }
-
     private class PeriodicIO {
 
         public double RPM;
@@ -90,60 +94,21 @@ public class ArmSubsystem extends Subsystem {
         public double demand_voltage;
 
     }
-
+      public Command runShooter(DoubleSupplier shooterSpeed) {
+    // Run shooter wheel at the desired speed using a PID controller and feedforward.
+    return run(() -> {
+        motor.setVoltage(shooterSpeed.getAsDouble());
+     });           
+  }
     @Override
-    public void registerEnabledLoops(ILooper enabledLooper) {
-        enabledLooper.register(new Loop() {
-            @Override
-            public void onStart(double timestamp) {
-
-            }
-
-            @Override
-            public void onLoop(double timestamp) {
-
-            }
-
-            @Override
-            public void onStop(double timestamp) {
-                stop();
-            }
-        });
-
+    public void periodic() {
     }
 
-    @Override
-    public void writePeriodicOutputs() {
-        mPeriodicIO.RPM = (quadratureEncoder.getRate() / 8192.0) * 60.0;
-        
-        /*if(!isSpunUp()){
-            if(isUnderShot()){
-                System.out.println("under");
-                mPeriodicIO.demand_voltage += 0.06;
-            }
-            if(isOverShot()){
-                System.out.println("over");
-                mPeriodicIO.demand_voltage -= 0.012;
-             }
-        }
-        if (mPeriodicIO.demand_voltage > Constants.ArmConstants.voltageLimit){
-            mPeriodicIO.demand_voltage = Constants.ArmConstants.voltageLimit;
-        }
-        if (mPeriodicIO.demand_voltage < -Constants.ArmConstants.voltageLimit){
-            mPeriodicIO.demand_voltage = -Constants.ArmConstants.voltageLimit;
-        }
-        */
+    public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
+        return mSysIdRoutine.quasistatic(direction);
     }
 
-    @Override
-    public void readPeriodicInputs() {
-        setVoltage(mPeriodicIO.demand_voltage);
-    }
-
-    @Override
-    public void outputTelemetry() {
-        SmartDashboard.putNumber("RPM", mPeriodicIO.RPM);
-        SmartDashboard.putNumber("Dist", quadratureEncoder.getDistance());
-        SmartDashboard.putNumber("demand voltage", mPeriodicIO.demand_voltage);
+    public Command sysIdDynamic(SysIdRoutine.Direction direction) {
+        return mSysIdRoutine.dynamic(direction);
     }
 }
